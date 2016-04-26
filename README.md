@@ -10,5 +10,5 @@ Currently, all these output files hold is an array of tropopause pressures.
 ### Script `tropopause_pressure_DART.ncl`  
 
 This script does the same thing as `tropopause_pressure.ncl`, but for the DART state-space output files (i.e. the ones with names like `Prior_Diag_STUFF.nc`. DART output files are pretty similar to WACCM/CAM files, but have some quirks, e.g. 
-+ variables dimensions are (lat,lon,lev) whereas in WACCM/CAM it's (lev,lat,lon)
++ variables dimensions are (time,copy,lat,lon,lev) whereas in WACCM/CAM it's (time, lev,lat,lon) - so the vertical level dimension is in  a different place, and there are additional copies for ensemble members, their mean and spread, etc. 
 + the reference pressure `P0` for computing pressure on hybrid model levels only has one value, but is in an array of as many vertical levels as the model. (Not sure if this is the case for all DART models -- but it is in DART-WACCM output from DART version kodiak). 
