@@ -86,6 +86,13 @@ do nf=0,nfili-1
 	filevarattdef(fout,"lon"  ,fin->lon)                     ; copy lon attributes
 
 	;===================================================================
+	; Define attributes for tropopause pressure. 
+	;====================================================================
+	fout->ptrop@units 	= fin->PS@units
+	fout->ptrop@long_name	= "Lapse-rate tropopause pressure"
+	fout->ptrop@_FillValue	= 9.96921e+36
+
+	;===================================================================
 	; output only the data values since the dimensionality and such have
 	; been predefined. The "(/", "/)" syntax tells NCL to only output the
 	; data values to the predefined locations on the file.
@@ -113,7 +120,8 @@ do nf=0,nfili-1
 	; loop over time 
 	do tt=0,time-1
 		; loop over copy
-		do cc=0,copy-1
+		;do cc=0,copy-1
+		do cc=0,1
 
 			;====================================================================
 			; Compute pressures from hybrid level definition  
@@ -128,11 +136,12 @@ do nf=0,nfili-1
 					; vector of pressure at the given point 
 					p = pi(tt,:,ii,jj)
 						   
-					; TEMPERATURE (C)   
+					; temperature 
 					t = fin->T(tt,cc,ii,jj,:)
 
 					; compute the pressure of the tropopause  
 					fout->ptrop(tt,cc,ii,jj) = trop_wmo(p, t, punit, False)     
+
 				end do	; lon loop 
 			end do 	; lat loop 
 		end do 	; copy loop 
