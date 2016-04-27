@@ -55,10 +55,10 @@ do nf=0,nfili-1
 	fin = addfile(filename_in,"r")  
 
 	; get array dimensions for a 2d array (from surface pressure) 
-	vdim = new(2,integer)
-	vdim = dimsizes(fin->PS(0,0,:,:))
-	time = dimsizes(fin->PS(:,0,0,0))
-	copy = dimsizes(fin->PS(0,:,0,0))
+	vdim = new(3,integer)
+	vdim = dimsizes(fin->T(0,0,:,:,:))
+	time = dimsizes(fin->T(:,0,0,0,0))
+	copy = dimsizes(fin->T(0,:,0,0,0))
 
 	; also get information on the "copy" array  
 	metadatalength = dimsizes(fin->CopyMetaData(0,:))
@@ -86,9 +86,9 @@ do nf=0,nfili-1
 	;===================================================================
 	; create coordinate variables for output file 
 	;===================================================================
-	dimNames = (/ "time","copy","lat","lon","metadatalength" /)
-	dimSizes = (/ time,copy,vdim(0),vdim(1),metadatalength /)
-	dimUnlim = (/ False,False,False,False,False /)
+	dimNames = (/ "time","copy","lat","lon","lev","metadatalength" /)
+	dimSizes = (/ time,copy,vdim(0),vdim(1),vdim(2),metadatalength /)
+	dimUnlim = (/ False,False,False,False,False,False /)
 	filedimdef(fout,dimNames,dimSizes,dimUnlim)
 
 	;===================================================================
@@ -100,7 +100,12 @@ do nf=0,nfili-1
 	filevardef(fout, "CopyMetaData" ,typeof(fin->CopyMetaData),getvardims(fin->CopyMetaData))
 	filevardef(fout, "lat" ,typeof(fin->lat),getvardims(fin->lat))
 	filevardef(fout, "lon" ,typeof(fin->lon),getvardims(fin->lon))
+	filevardef(fout, "lev" ,typeof(fin->lev),getvardims(fin->lev))
+	filevardef(fout, "hyam" ,typeof(fin->hyam),getvardims(fin->hyam))
+	filevardef(fout, "hybm" ,typeof(fin->hybm),getvardims(fin->hybm))
+	filevardef(fout, "P0" ,typeof(fin->P0),getvardims(fin->P0))
 	filevardef(fout, "ptrop" ,typeof(fin->PS),getvardims(fin->PS))
+	filevardef(fout, "P" ,typeof(fin->T),getvardims(fin->T))
 
 	;===================================================================
 	; Copy attributes associated with each variable to the file
@@ -112,13 +117,24 @@ do nf=0,nfili-1
 	filevarattdef(fout,"CopyMetaData" ,fin->CopyMetaData)    ; copy CopymetaData attributes
 	filevarattdef(fout,"lat"  ,fin->lat)                     ; copy lat attributes
 	filevarattdef(fout,"lon"  ,fin->lon)                     ; copy lon attributes
+	filevarattdef(fout,"lev"  ,fin->lev)                     ; copy lev attributes
+
+	filevarattdef(fout,"hyam"  ,fin->hyam)                     ; copy hyam attributes
+	filevarattdef(fout,"hybm"  ,fin->hybm)                     ; copy hybm attributes
+	filevarattdef(fout,"P0"  ,fin->P0)                     ; copy P0 attributes
 
 	;===================================================================
-	; Define attributes for tropopause pressure. 
+	; Define attributes for tropopause pressure and the 3D pressure array. 
 	;====================================================================
 	fout->ptrop@units 	= fin->PS@units
 	fout->ptrop@long_name	= "Lapse-rate tropopause pressure"
+	;fout->ptrop@_FillValue	= 9.96921e+36
 	fout->ptrop@_FillValue	= 9.96921e+36
+
+	fout->P@units 		= fin->PS@units
+	fout->P@long_name	= "Pressure"
+	;fout->P@_FillValue	= 9.96921e+36
+	fout->P@_FillValue	= 9.96921e+36
 
 	;===================================================================
 	; output only the data values since the dimensionality and such have
@@ -131,6 +147,10 @@ do nf=0,nfili-1
 	fout->CopyMetaData   = (/fin->CopyMetaData/)     
 	fout->lat    = (/fin->lat/)
 	fout->lon    = (/fin->lon/) 
+	fout->lev    = (/fin->lev/) 
+	fout->hyam    = (/fin->hyam/) 
+	fout->hybm    = (/fin->hybm/) 
+	fout->P0    = (/fin->P0/) 
 
 
 	;====================================================================
@@ -145,33 +165,45 @@ do nf=0,nfili-1
 	end if 
 
 	;====================================================================
-	; loop over time 
-	do tt=0,time-1
-		; loop over copy
-		do icopy=0,nC-1
+	; loop over copy and compute 3d pressure array 
+	;====================================================================
+	do cc=0,copy-1
+		; Compute pressures from hybrid level definition  
+		ps   = fin->PS(:,cc,:,:)   ; surface pressure 
+		p0   = fin->P0(0)	; reference pressure 
+		pi = pres_hybrid_ccm(ps,p0,hyam,hybm)  
+		; the DART output arrays are shaped like time-copy-lat-lon-lev 
+		; whereas the above function returns it like tie-lev-lat-lon,
+		; so have to loop over lat and lon and sort everything 
+		do ii=0,vdim(0)-1
+			do jj=0,vdim(1)-1
+				fout->P(:,cc,ii,jj,:) = (/pi(:,:,ii,jj)/)
+			end do
+		end do
+	end do
 
-			cc = selected_copies(icopy)
-			print("Computing tropopause height for copy "+CopyMetaData(cc,:))
+	;====================================================================
+	; loop over selected copies and time, and compute tropopause pressure
+	;====================================================================
+	; loop over copy
+	do icopy=0,nC-1
+		cc = selected_copies(icopy)
+		print("Computing tropopause height for copy "+CopyMetaData(cc,:))
 
-			;====================================================================
-			; Compute pressures from hybrid level definition  
-			;====================================================================
-			ps   = fin->PS(:,cc,:,:)   ; surface pressure 
-			p0   = fin->P0(0)	; reference pressure 
-			pi   = pres_hybrid_ccm(ps,p0,hyam,hybm)  
+		; loop over time 
+		do tt=0,time-1
 
 			; loop over all lats and lons 
 			do ii=0,vdim(0)-1
 				do jj=0,vdim(1)-1
 					; vector of pressure at the given point 
-					p = pi(tt,:,ii,jj)
+					p = fout->P(tt,cc,ii,jj,:)
 						   
 					; temperature 
 					t = fin->T(tt,cc,ii,jj,:)
-
+		
 					; compute the pressure of the tropopause  
 					fout->ptrop(tt,cc,ii,jj) = trop_wmo(p, t, punit, False)
-
 				end do	; lon loop 
 			end do 	; lat loop 
 		end do 	; copy loop 
