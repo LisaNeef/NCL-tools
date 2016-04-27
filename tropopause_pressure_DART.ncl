@@ -5,6 +5,13 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 ; i.e. files that have names like 'Posterior_Diag_XXXX.nc', etc. 
 ; This script replaces them with names like 'Posterior_tropopause_XXXX.nc'  
 ;
+; Looping over netcdf files:  
+;  There are two options for looping: either go over all DART diagnostic 
+;  files in the working directory, or read in a list of files given in file_list.
+;  The latter is good if you have a lot of DART output sitting in a different 
+;  directory and don't want to copy it all over. 
+;  Uncomment the desired option below. 
+;
 ;
 ; File requirements: 
 ; + vertical levels must be in hybrid coordinates and go from the top of the
@@ -23,16 +30,22 @@ begin
 ;=================================================;
 ; Read all file names in directory
 ;=================================================;
-diri = "./" ; input directory
-fili = systemfunc("cd "+diri+" ; ls *Diag*nc")
-nfili = dimsizes(fili) 
+;diri = "./" ; input directory
+;fili = systemfunc("cd "+diri+" ; ls *Diag*nc")
+
+;=================================================;
+; Read the files in the  list 
+;=================================================;
+fili = asciiread("file_list",-1,"string")
 
 ;=================================================;
 ; Loop over all available files 
 ;=================================================;
+nfili = dimsizes(fili)
 do nf=0,nfili-1
 	filename_in=fili(nf)
-	fin = addfile(diri+filename_in, "r")
+	;fin = addfile(diri+filename_in, "r")
+	fin = addfile(filename_in, "r")
 	print("reading file "+filename_in)
 
 	;=================================================;
@@ -64,7 +77,9 @@ do nf=0,nfili-1
 	;=================================================;
 	; Initialize output file 
 	;=================================================;
-	filename_out = str_sub_str(filename_in, "Diag", "tropopause")
+	strs = str_split(filename_in,"/")
+	filename_in_stripped = strs(dimsizes(strs)-1)
+	filename_out = str_sub_str(filename_in_stripped, "Diag", "tropopause")
 	system( "rm " + filename_out)
 	fout = addfile(filename_out,"c")  
 
