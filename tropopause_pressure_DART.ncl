@@ -24,7 +24,7 @@ begin
 ; Read all file names in directory
 ;=================================================;
 diri = "./" ; input directory
-fili = systemfunc("cd "+diri+" ; ls *nc")
+fili = systemfunc("cd "+diri+" ; ls *Diag*nc")
 nfili = dimsizes(fili) 
 
 ;=================================================;
@@ -46,7 +46,20 @@ do nf=0,nfili-1
 	vdim = dimsizes(fin->PS(0,0,:,:))
 	time = dimsizes(fin->PS(:,0,0,0))
 	copy = dimsizes(fin->PS(0,:,0,0))
+
+	; also get information on the "copy" array  
 	metadatalength = dimsizes(fin->CopyMetaData(0,:))
+	CopyMetaData = fin->CopyMetaData
+
+	; identify the copy indices where computing tropopause pressure makese sense,
+	; i.e. ensemble members and the mean, but not the ensemble spread 
+	; or inflation factors 
+	; This saves time and avoids contaminating the ptrop array with 
+	; ridiculous values 
+	ensemble_member_copies = str_match_ind_ic(CopyMetaData,"ensemble member")
+	ensemble_mean_copies = str_match_ind_ic(CopyMetaData,"ensemble mean")
+	selected_copies = array_append_record (ensemble_member_copies, ensemble_mean_copies, 0)
+	nC = dimsizes(selected_copies) 
 
 	;=================================================;
 	; Initialize output file 
@@ -120,8 +133,10 @@ do nf=0,nfili-1
 	; loop over time 
 	do tt=0,time-1
 		; loop over copy
-		;do cc=0,copy-1
-		do cc=0,1
+		do icopy=0,nC-1
+
+			cc = selected_copies(icopy)
+			print("Computing tropopause height for copy "+CopyMetaData(cc,:))
 
 			;====================================================================
 			; Compute pressures from hybrid level definition  
@@ -140,7 +155,7 @@ do nf=0,nfili-1
 					t = fin->T(tt,cc,ii,jj,:)
 
 					; compute the pressure of the tropopause  
-					fout->ptrop(tt,cc,ii,jj) = trop_wmo(p, t, punit, False)     
+					fout->ptrop(tt,cc,ii,jj) = trop_wmo(p, t, punit, False)
 
 				end do	; lon loop 
 			end do 	; lat loop 
@@ -148,6 +163,7 @@ do nf=0,nfili-1
 	end do 	; time loop 
 	;====================================================================
 	
+
 	print("writing Netcdf file "+filename_out)
 
 end do 
