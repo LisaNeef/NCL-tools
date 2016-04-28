@@ -16,3 +16,7 @@ DART output files are pretty similar to WACCM/CAM files, but have some quirks, e
 
 It doesn't make sense to compute tropopause height for copies like ensemble std or inflation factors, and in fact will yield crazy values that make it hard to view the file in ncview. T
 Therefore (and so save computation time), this script only does the computation for the ensemble mean and individual ensemble members. 
+
+### Script `tropopause_pressure_ERA.ncl`  
+
+This script does the same thing as `tropopause_pressure.ncl`, but for ERA-Interim data on constant pressure surfaces. 
