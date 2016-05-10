@@ -19,6 +19,16 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 ; + the files must have time as the first dimension and 'copy' as the 
 ;	second. 
 ;
+; A note on comparing DART copies:  
+; The computation `trop_wmo` is nonlinear -- it selects a local minimum. 
+; The present script applies this computation to individual ensembe members as well as the ensemble mean, 
+; but applying the WMO criterion to the ensemble mean (i.e. a min of a mean) will yield a different answer 
+; than taking the mean of the WMO criterion applied to each ensemble member. 
+; When visualizing output, it makes more sense to look at the tropopause pressure of individual ensemble 
+; members and then compute the mean of that. 
+
+
+
 ; Lisa Neef  
 ; GEOMAR Helmholtz Centre for Ocean Research Kiel  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
