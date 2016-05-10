@@ -128,12 +128,10 @@ do nf=0,nfili-1
 	;====================================================================
 	fout->ptrop@units 	= fin->PS@units
 	fout->ptrop@long_name	= "Lapse-rate tropopause pressure"
-	;fout->ptrop@_FillValue	= 9.96921e+36
 	fout->ptrop@_FillValue	= 9.96921e+36
 
 	fout->P@units 		= fin->PS@units
 	fout->P@long_name	= "Pressure"
-	;fout->P@_FillValue	= 9.96921e+36
 	fout->P@_FillValue	= 9.96921e+36
 
 	;===================================================================
