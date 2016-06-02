@@ -133,6 +133,11 @@ do nf=0,nfili-1
 	filevarattdef(fout,"hyam"  ,fin->hyam)                     ; copy hyam attributes
 	filevarattdef(fout,"hybm"  ,fin->hybm)                     ; copy hybm attributes
 	filevarattdef(fout,"P0"  ,fin->P0)                     ; copy P0 attributes
+	if (fin->P0@units.eq."hPa".or.fin->P0@units.eq."millibars") then
+		punit=0
+	else
+		punit=1
+	end if 
 
 
 	;===================================================================
