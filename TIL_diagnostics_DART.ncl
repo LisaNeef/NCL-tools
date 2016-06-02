@@ -73,7 +73,7 @@ do nf=0,nfili-1
 	metadatalength = dimsizes(fin->CopyMetaData(0,:))
 	CopyMetaData = fin->CopyMetaData
 
-	; identify the copy indices where computing TIL diagnostics makese sense,
+	; identify the copy indices where computing TIL diagnostics makes sense,
 	; i.e. ensemble members and the mean, but not the ensemble spread 
 	; or inflation factors 
 	; This saves time and avoids contaminating the ptrop array with 
@@ -117,6 +117,7 @@ do nf=0,nfili-1
 	filevardef(fout, "P0" ,typeof(fin->P0),getvardims(fin->P0))
 	filevardef(fout, "theta" ,typeof(fin->T),getvardims(fin->T))
 	filevardef(fout, "P" ,typeof(fin->T),getvardims(fin->T))
+	filevardef(fout, "brunt" ,typeof(fin->T),getvardims(fin->T))
 
 	;===================================================================
 	; Copy attributes associated with existing variables to output files
@@ -143,6 +144,10 @@ do nf=0,nfili-1
 	fout->P@units 		= fin->PS@units
 	fout->P@long_name	= "Pressure"
 	fout->P@_FillValue	= 9.96921e+36
+
+	fout->brunt@units 		= "s^-2"
+	fout->brunt@long_name	= "Brunt-Vaisala Frequency"
+	fout->brunt@_FillValue	= 9.96921e+36
 
 	;===================================================================
 	; output only the data values since the dimensionality and such have
@@ -173,7 +178,7 @@ do nf=0,nfili-1
 	do cc=0,copy-1
 		; Compute pressures from hybrid level definition  
 		ps   = fin->PS(:,cc,:,:)   ; surface pressure 
-		p0   = fin->P0(0)	; reference pressure 
+		p0   = tofloat(fin->P0(0))	; reference pressure 
 		pi = pres_hybrid_ccm(ps,p0,hyam,hybm)  
 		; the DART output arrays are shaped like time-copy-lat-lon-lev 
 		; whereas the above function returns it like tie-lev-lat-lon,
@@ -214,8 +219,15 @@ do nf=0,nfili-1
 					; geometric height in m
 					z = 7000.0*log(p0/p)
 
-					; calculate Brunt-Vaisala frequency
-					fout->brunt = brunt_vaisala_atm(fout->theta(tt,cc,ii,jj,:), z, 0, 1)  
+					; calculate Brunt-Vaisala frequency and potential temp
+					; NCL version 6.4 (not released yet) will this function:
+					; fout->brunt = brunt_vaisala_atm(fout->theta(tt,cc,ii,jj,:), z, 0, 1)  
+
+					; for now we have to do it manually
+					theta=fout->theta(tt,cc,ii,jj,:)
+					dthetadz  = center_finite_diff(theta,z,False,0)
+					g=9.80665
+					fout->brunt(tt,cc,ii,jj,:) = (g/theta)*dthetadz
 
 				end do	; lon loop 
 			end do 	; lat loop 
