@@ -118,6 +118,7 @@ do nf=0,nfili-1
 	filevardef(fout, "theta" ,typeof(fin->T),getvardims(fin->T))
 	filevardef(fout, "P" ,typeof(fin->T),getvardims(fin->T))
 	filevardef(fout, "brunt" ,typeof(fin->T),getvardims(fin->T))
+	filevardef(fout, "ptrop" ,typeof(fin->PS),getvardims(fin->PS))
 
 	;===================================================================
 	; Copy attributes associated with existing variables to output files
@@ -148,6 +149,10 @@ do nf=0,nfili-1
 	fout->brunt@units 		= "s^-2"
 	fout->brunt@long_name	= "Brunt-Vaisala Frequency"
 	fout->brunt@_FillValue	= 9.96921e+36
+
+	fout->ptrop@units 	= fin->PS@units
+	fout->ptrop@long_name	= "Lapse-rate tropopause pressure"
+	fout->ptrop@_FillValue	= 9.96921e+36
 
 	;===================================================================
 	; output only the data values since the dimensionality and such have
@@ -223,11 +228,14 @@ do nf=0,nfili-1
 					; NCL version 6.4 (not released yet) will this function:
 					; fout->brunt = brunt_vaisala_atm(fout->theta(tt,cc,ii,jj,:), z, 0, 1)  
 
-					; for now we have to do it manually
+					; N^2 --> for now we have to do it manually
 					theta=fout->theta(tt,cc,ii,jj,:)
 					dthetadz  = center_finite_diff(theta,z,False,0)
 					g=9.80665
 					fout->brunt(tt,cc,ii,jj,:) = (g/theta)*dthetadz
+
+					; also compute the tropopause pressure
+					fout->ptrop(tt,cc,ii,jj) = trop_wmo(p, t, punit, False)
 
 				end do	; lon loop 
 			end do 	; lat loop 
