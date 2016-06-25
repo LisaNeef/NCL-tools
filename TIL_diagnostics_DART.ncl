@@ -44,9 +44,18 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 begin 
 
 ;=================================================;
+; Check for an input - if not there, read 
+; file called 'file_list'
+;=================================================;
+  if (.not. isvar("file_list")) then      ; is file_list on command line?
+      file_list = "file_list"
+  end if
+
+;=================================================;
 ; Read the files in the  list 
 ;=================================================;
-fili = asciiread("file_list",-1,"string")
+;fili = asciiread("file_list",-1,"string")
+fili = asciiread(file_list,-1,"string")
 
 ;=================================================;
 ; Loop over all available files 
